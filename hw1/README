@@ -1,0 +1,103 @@
+***Introduction**
+1. As a part of the assignment sys_mergesort system call is implemented to merge two files.
+2. sys_xmergesort is added to the kernel as a new dynamic module
+3. sys_xmergesort is invoked using user level program xhw1.c
+4. To test the functionality of this new system call, Please run the install_module.sh script
+5. kernel config file is added as kernel.config file under hw1 folder
+
+**Git Files Changed/Included**
+1)/usr/src/hw1-anegi/hw1/xhw1.h
+2)/usr/src/hw1-anegi/hw1/sys_xmergesort.c
+3)/usr/src/hw1-anegi/hw1/xhw1.c
+4)/usr/src/hw1-anegi/arch/x86/entry/syscalls/syscall_64.tbl
+5)/usr/src/hw1-anegi/fs/namei.c
+6)/usr/src/hw1-anegi/fs/open.c
+7)/usr/src/hw1-anegi/include/linux/syscalls.h
+8)/usr/src/hw1-anegi/hw1/Makefile
+9)/usr/src/hw1-anegi/hw1/README
+10)/usr/src/hw1-anegi/hw1/install_module.sh
+11)/usr/src/hw1-anegi/hw1/kernel.config
+
+**Minimal Kernel configuration**
+Brought down the kernel config, kernel.config file 
+to under 1000 
+
+**Invalid Input Handling**
+1. If optional paramteres other than u,a,i,t,d are passed by the user then error "Unknown Options" is reported
+2. If number of input parameters are less than Error is reported
+3. If any of the input files doesn't exist, error is reported
+4. If any of the input files are same or output file is same as any one of the input file and if they
+belong to same file system then error is reported
+5. Check of files being regular is reported
+6. Validation of uswr space parameters is done.
+
+**Permission Of Output File**
+Output file is given permissions similar to input file 1
+
+**Reading and Writing to File**
+Input file is read by PAGE_SIZE and written to output file at PAGE_SIZE
+Length of each line is not more than PAGE_SIZE number of characters
+
+**Flags Handling**
+1. All flags u,a,i,t,d are implemented
+2. If no flags are passed from user land to kernel land, exception is
+raised and system call returns immediately
+3. On none of the flag set or if both u and a flags are set an exception is reported. This validation is handled in system call
+
+**Handling Zero Length Files**
+If both input files are empty, an empty output file is created.
+
+**Handling Partial Success**
+A temporary file is created and then outpot is writtenn to that file,
+if the flow of the code fails somewhere the the temporary file is deleted
+in case of success the temporary file is remaned as the final output file passed by the user.
+
+
+**Sorting Logic**
+Two input files are merged line by line by comparing their ASCII values
+
+**Algorithm**
+1. If all validations in user land are successful, call system call
+from the user land
+example: ./xmergesort -u outputFile.txt inputFile1.txt inputFile2.txt
+2. Validate all arguments including combination of flags as discussed
+in the section flags handling, passed from user land to kernel land
+3. If all validations are successful, do the following:
+i. Open two input files in read mode and temporary file in write mode
+ii. Read one page from each of the input files into their respective
+buffers and goto step vi if you reach end of the file
+iii. Compare one line of each of the buffers of input files depending
+upon the flags passed and add the smaller value to the output buffer
+if output buffer is not of PAGE_SIZE else if the output buffer is
+full, write buffer to output file and initialize buffer to '\0'
+iv. Read next line from the input buffer of file which had smaller value
+v. If any of the buffers exhaust, goto step 2
+vi. Iterate through the non empty file and append to output
+4. Return the output from syscall to user program and in user land
+signify success and failure of system call and reason for failure in
+case of failure
+
+**Test cases**
+
+a) ./xmergesort [-uatid]  inputFile1.txt inputFile2.txt outputFile.txt
+ #memory allocation fails
+Error code: ENOMEM is returned
+b) ./xmergesort [-uatid]  inputFile1.txt inputFile2.txt outputFile.txt
+ #either of input files do not exist or error while opening file
+Error code: ENOENT is returned
+
+c) ./xmergesort [-uatid]  inputFile1.txt inputFile2.txt outputFile.txt
+#either copy_from_user or copy_to_user fails
+Error code: EFAULT is returned
+
+d) ./xmergesort [-uatid]  inputFile1.txt inputFile2.txt outputFile.txt
+#getname fails
+Error code: EBADF is returned
+
+
+%%%%%%%%%%%% FORMAT : ./xhw1 [-uaitd] input1 input2 output
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXTRA CREDIT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%The system call runs if n files are given as input.
+%%%%%%%%./xhw1 [-uatid] inputFile1.txt inputFile2.txt inputFile3.txt inputFile4.txt inputFile5.txt outputfile.txt
